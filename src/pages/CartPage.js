@@ -90,7 +90,7 @@ const CartPage = () => {
                 {/* Produktbild */}
                 <div className="w-24 h-24 flex-shrink-0">
                   <img
-                    src={`https://bestandsliste.onrender.com/${product.image}`}
+                    src={`https://bestandsliste.onrender.com/${item.image}`}
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />
