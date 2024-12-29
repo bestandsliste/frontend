@@ -13,27 +13,20 @@ const CustomerLogin = () => {
 
     try {
       const response = await axios.post(
-        'https://bestandsliste.onrender.com/api/customers/login',
-        { name, password }
+        'http://localhost:5000/api/customers/login',
+        {
+          name: name, // Der State-Wert für den Namen
+          password: password, // Der State-Wert für das Passwort
+        }
       );
-
-      // Daten aus der Antwort holen
-      const { id, name: customerName, customerPrice, token } = response.data;
-
-      // Daten im sessionStorage speichern
-      sessionStorage.setItem(
-        'customer',
-        JSON.stringify({ id, customerName, customerPrice, token })
-      );
-
-      // Weiterleitung zur Startseite oder CartPage
-      navigate('/');
+      console.log('Erfolgreich eingeloggt:', response.data);
+      // SessionStorage setzen
+      sessionStorage.setItem('customerToken', response.data.token);
+      sessionStorage.setItem('customerName', response.data.name);
+      sessionStorage.setItem('customerPrice', response.data.customerPrice);
+      // Weiterleiten (falls nötig)
     } catch (error) {
-      console.error('Login-Fehler:', error);
-      setError(
-        error.response?.data?.message ||
-          'Fehler beim Login. Bitte versuchen Sie es erneut.'
-      );
+      console.error('Login-Fehler: ', error);
     }
   };
 
