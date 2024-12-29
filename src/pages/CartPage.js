@@ -1,21 +1,55 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { CartContext } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const CartPage = () => {
   const { cart, addToCart, removeFromCart, clearCart } =
-    useContext(CartContext); // `setCart` entfernt
+    useContext(CartContext);
   const navigate = useNavigate();
 
   const [quantities, setQuantities] = useState(
     cart.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
   );
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Überprüfung ob Nutzer eingeloggt ist
+  const [customerPrice, setCustomerPrice] = useState(0); // Kundenpreis
+  const [totalPrice, setTotalPrice] = useState(0); // Gesamtpreis für eingeloggten Kunden
+
+  // Überprüfen, ob der Nutzer eingeloggt ist, und Kundenpreis abrufen
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      try {
+        const response = await axios.get(
+          'https://bestandsliste.onrender.com/api/users/me',
+          {
+            withCredentials: true, // Cookies senden
+          }
+        );
+        setIsLoggedIn(true); // Nutzer ist eingeloggt
+        setCustomerPrice(response.data.customerPrice); // Kundenpreis setzen
+      } catch (error) {
+        setIsLoggedIn(false); // Nutzer ist nicht eingeloggt
+      }
+    };
+
+    fetchCustomerData();
+  }, []);
+
+  // Gesamtpreis berechnen
+  useEffect(() => {
+    if (isLoggedIn) {
+      let total = 0;
+      cart.forEach((item) => {
+        total += customerPrice * item.quantity; // Kundenpreis * Menge
+      });
+      setTotalPrice(total);
+    }
+  }, [cart, isLoggedIn, customerPrice]);
 
   // Menge aktualisieren
   const handleQuantityChange = (id, newQuantity) => {
     setQuantities((prev) => ({ ...prev, [id]: newQuantity }));
-    addToCart({ id, quantity: parseInt(newQuantity, 10) || 1 }); // `addToCart` genutzt
+    addToCart({ id, quantity: parseInt(newQuantity, 10) || 1 }); // Menge aktualisieren
   };
 
   // Produkt entfernen
@@ -37,7 +71,9 @@ const CartPage = () => {
         'https://bestandsliste.onrender.com/api/orders',
         {
           products: cart,
-        }
+          customerId: isLoggedIn ? response.data._id : null, // Kunde nur, wenn eingeloggt
+        },
+        { withCredentials: true } // Cookies senden
       );
       const orderId = response.data.id; // Nehmen wir an, die API gibt eine Bestell-ID zurück
       navigate(`/order/${orderId}`); // Weiterleitung zur Bestellseite
@@ -142,6 +178,15 @@ const CartPage = () => {
               Bestellung generieren
             </button>
           </div>
+
+          {/* Gesamtpreis nur für eingeloggte Kunden */}
+          {isLoggedIn && (
+            <div className="mt-6 p-4 bg-gray-100 rounded shadow">
+              <h3 className="text-xl font-bold">Gesamtpreis:</h3>
+              <p>{totalPrice.toFixed(2)} €</p>
+              <small>Versandkosten exklusive</small>
+            </div>
+          )}
         </>
       )}
     </div>
