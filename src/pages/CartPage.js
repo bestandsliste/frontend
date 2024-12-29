@@ -12,23 +12,26 @@ const CartPage = () => {
     cart.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false); // Überprüfung ob Nutzer eingeloggt ist
-  const [customerPrice, setCustomerPrice] = useState(0); // Kundenpreis
+  const [customerData, setCustomerData] = useState(null); // Kundendaten
   const [totalPrice, setTotalPrice] = useState(0); // Gesamtpreis für eingeloggten Kunden
 
-  // Überprüfen, ob der Nutzer eingeloggt ist, und Kundenpreis abrufen
+  // Kundendaten abrufen (gleiche Logik wie in homepage.js)
   useEffect(() => {
     const fetchCustomerData = async () => {
       try {
         const response = await axios.get(
-          'https://bestandsliste.onrender.com/api/users/me',
-          {
-            withCredentials: true, // Cookies senden
-          }
+          'https://bestandsliste.onrender.com/api/customers', // Gleiche API wie auf der Startseite
+          { withCredentials: true }
         );
-        setIsLoggedIn(true); // Nutzer ist eingeloggt
-        setCustomerPrice(response.data.customerPrice); // Kundenpreis setzen
+        if (response.data.length > 0) {
+          setIsLoggedIn(true);
+          setCustomerData(response.data[0]); // Nur den ersten Kunden verwenden
+        } else {
+          setIsLoggedIn(false);
+        }
       } catch (error) {
-        setIsLoggedIn(false); // Nutzer ist nicht eingeloggt
+        console.error('Fehler beim Abrufen der Kundendaten:', error);
+        setIsLoggedIn(false);
       }
     };
 
@@ -37,14 +40,14 @@ const CartPage = () => {
 
   // Gesamtpreis berechnen
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && customerData) {
       let total = 0;
       cart.forEach((item) => {
-        total += customerPrice * item.quantity; // Kundenpreis * Menge
+        total += customerData.customerPrice * item.quantity; // Kundenpreis * Menge
       });
       setTotalPrice(total);
     }
-  }, [cart, isLoggedIn, customerPrice]);
+  }, [cart, isLoggedIn, customerData]);
 
   // Menge aktualisieren
   const handleQuantityChange = (id, newQuantity) => {
@@ -71,7 +74,7 @@ const CartPage = () => {
         'https://bestandsliste.onrender.com/api/orders',
         {
           products: cart,
-          customerId: isLoggedIn ? response.data._id : null, // Kunde nur, wenn eingeloggt
+          customerId: isLoggedIn ? customerData._id : null, // Kunde nur, wenn eingeloggt
         },
         { withCredentials: true } // Cookies senden
       );
@@ -87,6 +90,28 @@ const CartPage = () => {
 
   return (
     <div className="container mx-auto max-w-6xl py-10 px-4">
+      {/* Begrüßung und Logout */}
+      {isLoggedIn && customerData && (
+        <div className="flex justify-between items-center bg-gray-200 p-4 mb-4 rounded shadow">
+          <span className="text-lg font-semibold">
+            Hallo, {customerData.name}!
+          </span>
+          <button
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            onClick={() => {
+              axios.post(
+                'https://bestandsliste.onrender.com/api/logout',
+                {},
+                { withCredentials: true }
+              );
+              setIsLoggedIn(false);
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+
       {/* Zurück zur Startseite */}
       <button
         className="mb-6 text-blue-600 underline"
@@ -180,11 +205,16 @@ const CartPage = () => {
           </div>
 
           {/* Gesamtpreis nur für eingeloggte Kunden */}
-          {isLoggedIn && (
+          {isLoggedIn && customerData && (
             <div className="mt-6 p-4 bg-gray-100 rounded shadow">
-              <h3 className="text-xl font-bold">Gesamtpreis:</h3>
-              <p>{totalPrice.toFixed(2)} €</p>
-              <small>Versandkosten exklusive</small>
+              <h3 className="text-xl font-bold">Dein Gesamtpreis:</h3>
+              <p>
+                Summe: {cart.reduce((sum, item) => sum + item.quantity, 0)}{' '}
+                Stück
+              </p>
+              <p>Dein Preis: {customerData.customerPrice.toFixed(2)} €</p>
+              <p>Gesamtpreis: {totalPrice.toFixed(2)} €</p>
+              <small>+ Versandkosten, werden separat berechnet</small>
             </div>
           )}
         </>

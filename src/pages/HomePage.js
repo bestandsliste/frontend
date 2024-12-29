@@ -16,9 +16,11 @@ const HomePage = () => {
     return localStorage.getItem('availability') || 'Alle';
   });
 
+  const [customerName, setCustomerName] = useState(''); // Speichert den eingeloggt-Status und den Namen des Kunden
+  const navigate = useNavigate();
+
   // Warenkorb aus dem globalen Context holen
   const { cart, addToCart } = useContext(CartContext);
-  const navigate = useNavigate();
 
   // Produkte aus dem Backend laden
   useEffect(() => {
@@ -29,6 +31,21 @@ const HomePage = () => {
         console.error('Fehler beim Abrufen der Produkte:', error)
       );
   }, []);
+
+  // Kundeninformationen aus SessionStorage laden
+  useEffect(() => {
+    const name = sessionStorage.getItem('customerName');
+    if (name) {
+      setCustomerName(name); // Setzt den Kundenname, falls eingeloggt
+    }
+  }, []);
+
+  // Logout-Funktion
+  const handleLogout = () => {
+    sessionStorage.clear(); // SessionStorage leeren
+    setCustomerName(''); // Kundenname zurücksetzen
+    navigate('/'); // Zur Startseite weiterleiten
+  };
 
   // Speichere Suchbegriff und Verfügbarkeitsfilter in localStorage
   useEffect(() => {
@@ -72,14 +89,31 @@ const HomePage = () => {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
             Bestandsliste
           </h1>
-          <div
-            className="flex items-center space-x-4 cursor-pointer"
-            onClick={() => navigate('/cart')} // Klick führt zur Warenkorb-Seite
-          >
-            <FaShoppingCart size={20} />
-            <span className="text-sm sm:text-lg font-semibold">
-              ({cart.reduce((total, item) => total + item.quantity, 0)})
-            </span>
+          <div className="flex items-center space-x-4">
+            {/* Begrüßung und Logout anzeigen, wenn der Kunde eingeloggt ist */}
+            {customerName ? (
+              <>
+                <span className="text-sm sm:text-lg">
+                  Hallo, <strong>{customerName}</strong>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="text-red-400 hover:underline text-sm sm:text-lg"
+                >
+                  Logout
+                </button>
+              </>
+            ) : null}
+            {/* Warenkorb */}
+            <div
+              className="flex items-center space-x-4 cursor-pointer"
+              onClick={() => navigate('/cart')} // Klick führt zur Warenkorb-Seite
+            >
+              <FaShoppingCart size={20} />
+              <span className="text-sm sm:text-lg font-semibold">
+                ({cart.reduce((total, item) => total + item.quantity, 0)})
+              </span>
+            </div>
           </div>
         </div>
       </header>

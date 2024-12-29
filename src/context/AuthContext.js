@@ -1,47 +1,34 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // Benutzerinfo (Name, Token)
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Login-Status
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const config = {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        }
-                    };
-                    const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/users/profile`, config);
-                    setUser(data);
-                } catch (error) {
-                    console.error('Fehler beim Laden des Benutzers:', error);
-                    setUser(null);
-                }
-            }
-        };
+  // Überprüfe SessionStorage bei Seiten-Reload
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('customerToken');
+    const storedName = sessionStorage.getItem('customerName');
 
-        fetchUser();
-    }, []);
+    if (storedToken && storedName) {
+      setUser({ name: storedName, token: storedToken });
+      setIsLoggedIn(true);
+    }
+  }, []);
 
-    const login = async (email, password) => {
-        const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/users/login`, { email, password });
-        localStorage.setItem('token', data.token);
-        setUser(data);
-    };
+  // Logout-Funktion
+  const logout = () => {
+    sessionStorage.clear();
+    setUser(null);
+    setIsLoggedIn(false);
+  };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setUser(null);
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider
+      value={{ user, isLoggedIn, setUser, setIsLoggedIn, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };

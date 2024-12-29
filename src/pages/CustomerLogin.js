@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CustomerLogin = () => {
   const [name, setName] = useState('');
@@ -15,18 +17,29 @@ const CustomerLogin = () => {
       const response = await axios.post(
         'http://localhost:5000/api/customers/login',
         {
-          name: name, // Der State-Wert für den Namen
-          password: password, // Der State-Wert für das Passwort
+          name: name,
+          password: password,
         }
       );
       console.log('Erfolgreich eingeloggt:', response.data);
+
       // SessionStorage setzen
       sessionStorage.setItem('customerToken', response.data.token);
       sessionStorage.setItem('customerName', response.data.name);
       sessionStorage.setItem('customerPrice', response.data.customerPrice);
-      // Weiterleiten (falls nötig)
+
+      // Toast für erfolgreiche Anmeldung
+      toast.success('Erfolgreich eingeloggt!');
+
+      // Weiterleitung nach 2 Sekunden (nach Toast)
+      setTimeout(() => {
+        navigate('/'); // Zur Startseite leiten
+      }, 2000);
     } catch (error) {
       console.error('Login-Fehler: ', error);
+
+      // Toast für Fehler anzeigen
+      toast.error('Login fehlgeschlagen. Überprüfe deine Eingaben!');
     }
   };
 
@@ -78,6 +91,9 @@ const CustomerLogin = () => {
           Login
         </button>
       </form>
+
+      {/* ToastContainer für die Toast-Nachrichten */}
+      <ToastContainer />
     </div>
   );
 };
