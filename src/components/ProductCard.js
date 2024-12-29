@@ -8,7 +8,7 @@ const ProductCard = ({ product }) => {
   console.log('Rendering ProductCard for:', product); // Debugging-Log
 
   const backendURL =
-    process.env.REACT_APP_API_URL || 'https://bestandsliste.vercel.app';
+    process.env.REACT_APP_API_URL || 'https://bestandsliste.onrender.com';
   const imagePath = product.image.startsWith('/')
     ? product.image
     : `/${product.image}`;
@@ -16,7 +16,7 @@ const ProductCard = ({ product }) => {
   return (
     <div className="border rounded-lg shadow-md p-4 flex flex-col hover:shadow-xl transition-shadow">
       <img
-        src={`https://bestandsliste.vercel.app${imagePath}`}
+        src={`${backendURL}${imagePath}`}
         alt={product.title}
         className="mb-4 h-40 object-contain"
       />
