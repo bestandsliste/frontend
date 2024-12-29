@@ -1,97 +1,170 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useContext } from 'react';
+import { FaSearch, FaShoppingCart } from 'react-icons/fa';
 import ProductCard from '../components/ProductCard';
+import { CartContext } from '../context/CartContext'; // Importiere den CartContext
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
-    const [products, setProducts] = useState([]);
-    const [search, setSearch] = useState('');
-    const [availability, setAvailability] = useState('Alle');
+  const [products, setProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(() => {
+    // Suchbegriff aus dem localStorage laden
+    return localStorage.getItem('searchQuery') || '';
+  });
+  const [availability, setAvailability] = useState(() => {
+    // Verfügbarkeitsfilter aus dem localStorage laden
+    return localStorage.getItem('availability') || 'Alle';
+  });
 
-    const backendURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  // Warenkorb aus dem globalen Context holen
+  const { cart, addToCart } = useContext(CartContext);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const { data } = await axios.get(`${backendURL}/products`, {
-                    params: {
-                        search,
-                        availability: availability === 'Alle' ? '' : availability === 'Auf Lager' ? 1 : 0,
-                    },
-                });
-                console.log('Geladene Produkte:', data); // Debugging-Log
-                setProducts(data);
-            } catch (error) {
-                console.error('Fehler beim Laden der Produkte:', error.response?.data?.message || error.message);
-            }
-        };
+  // Produkte aus dem Backend laden
+  useEffect(() => {
+    axios
+      .get('https://bestandsliste.onrender.com/api/products')
+      .then((response) => setProducts(response.data))
+      .catch((error) =>
+        console.error('Fehler beim Abrufen der Produkte:', error)
+      );
+  }, []);
 
-        fetchProducts();
-    }, [search, availability, backendURL]);
+  // Speichere Suchbegriff und Verfügbarkeitsfilter in localStorage
+  useEffect(() => {
+    localStorage.setItem('searchQuery', searchQuery);
+    localStorage.setItem('availability', availability);
+  }, [searchQuery, availability]);
 
-    // Berechne die Anzahl der Produkte für Filteroptionen
-    const totalCount = products.length;
-    const inStockCount = products.filter(p => p.availability === 1).length;
-    const soldOutCount = products.filter(p => p.availability === 0).length;
+  // Filterlogik für Produkte
+  const filterProducts = () => {
+    let filtered = products;
 
-    return (
-        <div className="container mx-auto p-4">
-            {/* Hero-Bereich */}
-            <section className="bg-gray-100 rounded-lg p-8 mb-8 text-center">
-                <h1 className="text-4xl font-bold mb-4">Willkommen bei Bestandsliste</h1>
-                <p className="text-lg">
-                    Entdecke unsere vielfältigen Produkte und finde genau das, was du suchst. Nutze unsere Filter, um deine Suche zu verfeinern!
-                </p>
-            </section>
+    if (availability === 'Auf Lager') {
+      filtered = products.filter((product) => product.availability);
+    } else if (availability === 'Ausverkauft') {
+      filtered = products.filter((product) => !product.availability);
+    }
 
-            {/* Such- und Filterbereich */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
-                <input
-                    type="text"
-                    placeholder="Suche nach Produkten..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full md:w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setAvailability('Alle')}
-                        className={`px-4 py-2 rounded ${
-                            availability === 'Alle' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        } transition-colors`}
-                    >
-                        Alle ({totalCount})
-                    </button>
-                    <button
-                        onClick={() => setAvailability('Auf Lager')}
-                        className={`px-4 py-2 rounded ${
-                            availability === 'Auf Lager' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        } transition-colors`}
-                    >
-                        Auf Lager ({inStockCount})
-                    </button>
-                    <button
-                        onClick={() => setAvailability('Ausverkauft')}
-                        className={`px-4 py-2 rounded ${
-                            availability === 'Ausverkauft' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        } transition-colors`}
-                    >
-                        Ausverkauft ({soldOutCount})
-                    </button>
-                </div>
-            </div>
+    if (searchQuery) {
+      filtered = filtered.filter((product) =>
+        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
-            {/* Produktliste */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.length > 0 ? (
-                    products.map(product => (
-                        <ProductCard key={product._id} product={product} />
-                    ))
-                ) : (
-                    <p className="col-span-full text-center">Keine Produkte gefunden.</p>
-                )}
-            </div>
+    return filtered;
+  };
+
+  // Zähle Produkte für die Filter
+  const totalCount = products.length;
+  const inStockCount = products.filter(
+    (product) => product.availability
+  ).length;
+  const soldOutCount = products.filter(
+    (product) => !product.availability
+  ).length;
+
+  return (
+    <div className="bg-gray-100 min-h-screen font-sans">
+      {/* Header */}
+      <header className="bg-gray-800 text-white py-5 shadow-lg fixed top-0 left-0 w-full z-10">
+        <div className="container mx-auto max-w-6xl flex justify-between items-center px-4">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
+            Bestandsliste
+          </h1>
+          <div
+            className="flex items-center space-x-4 cursor-pointer"
+            onClick={() => navigate('/cart')} // Klick führt zur Warenkorb-Seite
+          >
+            <FaShoppingCart size={20} />
+            <span className="text-sm sm:text-lg font-semibold">
+              ({cart.reduce((total, item) => total + item.quantity, 0)})
+            </span>
+          </div>
         </div>
-    );
+      </header>
+
+      {/* Platz für den Header */}
+      <div className="h-24"></div>
+
+      {/* Hero-Bereich */}
+      <div className="py-16 bg-gray-800 text-center text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          Willkommen in unserer exklusiven Bestandsliste
+        </h2>
+        <p className="text-lg sm:text-xl font-light mb-6">
+          Durchsuchen Sie unsere Auswahl und finden Sie das perfekte Produkt.
+        </p>
+      </div>
+
+      {/* Suche und Filter */}
+      <div className="py-6 container mx-auto max-w-6xl">
+        {/* Suchfeld */}
+        <div className="mb-6 flex items-center space-x-3 bg-white shadow-md p-4">
+          <FaSearch className="text-gray-400" />
+          <input
+            type="text"
+            placeholder="Produkte durchsuchen..."
+            className="flex-1 outline-none text-base sm:text-lg bg-transparent"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Filter */}
+        <div className="flex justify-center space-x-6 mb-8">
+          <button
+            className={`px-6 py-2 transition-all duration-300 ${
+              availability === 'Alle'
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'bg-gray-300 text-black hover:bg-gray-400'
+            }`}
+            onClick={() => setAvailability('Alle')}
+          >
+            Alle ({totalCount})
+          </button>
+          <button
+            className={`px-6 py-2 transition-all duration-300 ${
+              availability === 'Auf Lager'
+                ? 'bg-green-600 text-white shadow-md'
+                : 'bg-gray-300 text-black hover:bg-gray-400'
+            }`}
+            onClick={() => setAvailability('Auf Lager')}
+          >
+            Auf Lager ({inStockCount})
+          </button>
+          <button
+            className={`px-6 py-2 transition-all duration-300 ${
+              availability === 'Ausverkauft'
+                ? 'bg-red-600 text-white shadow-md'
+                : 'bg-gray-300 text-black hover:bg-gray-400'
+            }`}
+            onClick={() => setAvailability('Ausverkauft')}
+          >
+            Ausverkauft ({soldOutCount})
+          </button>
+        </div>
+      </div>
+
+      {/* Produktliste */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 px-4 container mx-auto max-w-6xl">
+        {filterProducts().length > 0 ? (
+          filterProducts().map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              addToCart={addToCart}
+            />
+          ))
+        ) : (
+          <p className="text-center text-lg text-gray-500 col-span-full">
+            Keine Produkte gefunden. Versuchen Sie es mit einer anderen Suche
+            oder einem anderen Filter.
+          </p>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default HomePage;

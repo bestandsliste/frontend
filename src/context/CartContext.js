@@ -3,53 +3,47 @@ import React, { createContext, useState, useEffect } from 'react';
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cartItems, setCartItems] = useState([]);
+  // Warenkorb-Zustand aus dem `localStorage` wiederherstellen
+  const [cart, setCart] = useState(() => {
+    const storedCart = localStorage.getItem('cart');
+    return storedCart ? JSON.parse(storedCart) : [];
+  });
 
-    useEffect(() => {
-        const storedCart = localStorage.getItem('cartItems');
-        if (storedCart) {
-            setCartItems(JSON.parse(storedCart));
-        }
-    }, []);
+  // Speichere den Warenkorb im `localStorage`, wenn er sich ändert
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
-    useEffect(() => {
-        localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    }, [cartItems]);
+  // Produkt hinzufügen
+  const addToCart = (product) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((item) => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
+  };
 
-    const addToCart = (product) => {
-        setCartItems(prevItems => {
-            const existing = prevItems.find(item => item.product._id === product._id);
-            if (existing) {
-                return prevItems.map(item =>
-                    item.product._id === product._id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
-            } else {
-                return [...prevItems, { product, quantity: 1 }];
-            }
-        });
-    };
+  // Produkt entfernen
+  const removeFromCart = (id) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+  };
 
-    const removeFromCart = (productId) => {
-        setCartItems(prevItems => prevItems.filter(item => item.product._id !== productId));
-    };
+  // Warenkorb leeren
+  const clearCart = () => {
+    setCart([]);
+  };
 
-    const updateQuantity = (productId, quantity) => {
-        setCartItems(prevItems => prevItems.map(item =>
-            item.product._id === productId
-                ? { ...item, quantity }
-                : item
-        ));
-    };
-
-    const clearCart = () => {
-        setCartItems([]);
-    };
-
-    return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart }}>
-            {children}
-        </CartContext.Provider>
-    );
+  return (
+    <CartContext.Provider
+      value={{ cart, addToCart, removeFromCart, clearCart }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 };

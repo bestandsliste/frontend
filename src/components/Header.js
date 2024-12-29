@@ -1,25 +1,30 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { FaShoppingCart } from 'react-icons/fa';
-import { useCart } from '../hooks/useCart';
+import React, { useContext } from "react";
+import { FaShoppingCart } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { CartContext } from "../context/CartContext";
 
 const Header = () => {
-  const { cartItems } = useCart();
+  const { cart } = useContext(CartContext); // cart aus Context holen
+  const navigate = useNavigate();
 
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  // Sicherstellen, dass cart ein Array ist, bevor reduce() aufgerufen wird
+  const cartCount = Array.isArray(cart)
+    ? cart.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   return (
-    <header className="bg-blue-600 text-white shadow">
-      <div className="container mx-auto flex justify-between items-center p-4">
-        <Link to="/" className="text-2xl font-bold">
+    <header className="bg-gray-800 text-white py-5 shadow-lg fixed top-0 left-0 w-full z-10">
+      <div className="container mx-auto max-w-6xl flex justify-between items-center px-4">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
           Bestandsliste
-        </Link>
-        <Link to="/cart" className="relative flex items-center">
-          <FaShoppingCart size={24} />
-          <span className="absolute -top-2 -right-3 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-            {cartCount}
-          </span>
-        </Link>
+        </h1>
+        <div
+          className="flex items-center space-x-4 cursor-pointer"
+          onClick={() => navigate("/cart")} // Klick führt zur Warenkorb-Seite
+        >
+          <FaShoppingCart size={20} />
+          <span className="text-sm sm:text-lg font-semibold">({cartCount})</span>
+        </div>
       </div>
     </header>
   );
