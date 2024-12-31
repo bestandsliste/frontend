@@ -1,5 +1,5 @@
-import React from "react";
-import { FaPlus } from "react-icons/fa";
+import React from 'react';
+import { FaPlus } from 'react-icons/fa';
 
 const ProductCard = ({ product, addToCart }) => {
   const imagePath = `https://bestandsliste.onrender.com${product.image}`;
@@ -16,21 +16,19 @@ const ProductCard = ({ product, addToCart }) => {
           {product.title}
         </h3>
         <span
-          className={`text-xs sm:text-sm font-medium ${
-            product.availability
-              ? "text-green-600"
-              : "text-red-600"
+          className={`text-m sm:text-sm font-medium ${
+            product.availability ? 'text-green-600' : 'text-red-600'
           } mb-4`}
         >
-          {product.availability ? "Auf Lager" : "Ausverkauft"}
+          {product.availability ? 'Auf Lager' : 'Ausverkauft'}
         </span>
         <button
           onClick={() => addToCart(product)}
           disabled={!product.availability}
           className={`mt-auto w-full py-3 flex items-center justify-center space-x-2 transition-all duration-300 ${
             product.availability
-              ? "bg-gray-800 text-white hover:bg-gray-900"
-              : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              ? 'bg-gray-800 text-white hover:bg-gray-900'
+              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
           }`}
         >
           {product.availability ? (

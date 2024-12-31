@@ -7,6 +7,7 @@ import Header from './components/Header';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import CustomerLogin from './pages/CustomerLogin';
+import OrdersPage from './pages/OrdersPage'; // <-- OrdersPage importieren
 
 function App() {
   return (
@@ -19,7 +20,8 @@ function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/customer-login" element={<CustomerLogin />} />
-            {/* Weitere Routen hier */}
+            <Route path="/orders" element={<OrdersPage />} />{' '}
+            {/* Route hinzugefügt */}
           </Routes>
         </Router>
       </CartProvider>

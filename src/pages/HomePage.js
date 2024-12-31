@@ -1,28 +1,23 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { FaSearch, FaShoppingCart } from 'react-icons/fa';
 import ProductCard from '../components/ProductCard';
-import { CartContext } from '../context/CartContext'; // Importiere den CartContext
+import { CartContext } from '../context/CartContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState(() => {
-    // Suchbegriff aus dem localStorage laden
     return localStorage.getItem('searchQuery') || '';
   });
   const [availability, setAvailability] = useState(() => {
-    // Verfügbarkeitsfilter aus dem localStorage laden
     return localStorage.getItem('availability') || 'Alle';
   });
-
-  const [customerName, setCustomerName] = useState(''); // Speichert den eingeloggt-Status und den Namen des Kunden
+  const [customerName, setCustomerName] = useState('');
   const navigate = useNavigate();
 
-  // Warenkorb aus dem globalen Context holen
   const { cart, addToCart } = useContext(CartContext);
 
-  // Produkte aus dem Backend laden
   useEffect(() => {
     axios
       .get('https://bestandsliste.onrender.com/api/products')
@@ -32,28 +27,24 @@ const HomePage = () => {
       );
   }, []);
 
-  // Kundeninformationen aus SessionStorage laden
   useEffect(() => {
     const name = sessionStorage.getItem('customerName');
     if (name) {
-      setCustomerName(name); // Setzt den Kundenname, falls eingeloggt
+      setCustomerName(name);
     }
   }, []);
 
-  // Logout-Funktion
   const handleLogout = () => {
-    sessionStorage.clear(); // SessionStorage leeren
-    setCustomerName(''); // Kundenname zurücksetzen
-    navigate('/'); // Zur Startseite weiterleiten
+    sessionStorage.clear();
+    setCustomerName('');
+    navigate('/');
   };
 
-  // Speichere Suchbegriff und Verfügbarkeitsfilter in localStorage
   useEffect(() => {
     localStorage.setItem('searchQuery', searchQuery);
     localStorage.setItem('availability', availability);
   }, [searchQuery, availability]);
 
-  // Filterlogik für Produkte
   const filterProducts = () => {
     let filtered = products;
 
@@ -72,7 +63,6 @@ const HomePage = () => {
     return filtered;
   };
 
-  // Zähle Produkte für die Filter
   const totalCount = products.length;
   const inStockCount = products.filter(
     (product) => product.availability
@@ -90,24 +80,9 @@ const HomePage = () => {
             Bestandsliste
           </h1>
           <div className="flex items-center space-x-4">
-            {/* Begrüßung und Logout anzeigen, wenn der Kunde eingeloggt ist */}
-            {customerName ? (
-              <>
-                <span className="text-sm sm:text-lg">
-                  Hallo, <strong>{customerName}</strong>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-red-400 hover:underline text-sm sm:text-lg"
-                >
-                  Logout
-                </button>
-              </>
-            ) : null}
-            {/* Warenkorb */}
             <div
               className="flex items-center space-x-4 cursor-pointer"
-              onClick={() => navigate('/cart')} // Klick führt zur Warenkorb-Seite
+              onClick={() => navigate('/cart')}
             >
               <FaShoppingCart size={20} />
               <span className="text-sm sm:text-lg font-semibold">
@@ -118,15 +93,25 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* Platz für den Header */}
-      <div className="h-24"></div>
+      {/* Kundenbox */}
+      {customerName && (
+        <div className="bg-gray-100 p-4 shadow rounded flex justify-between items-center mt-16 mx-auto max-w-6xl">
+          <span className="text-lg font-semibold">Hallo, {customerName}!</span>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      )}
 
       {/* Hero-Bereich */}
-      <div className="py-16 bg-gray-800 text-center text-white">
-        <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+      <div className="py-20 bg-gray-800 text-center text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold mb-4 mt-8">
           Willkommen in unserer exklusiven Bestandsliste
         </h2>
-        <p className="text-lg sm:text-xl font-light mb-6">
+        <p className="text-lg sm:text-xl font-light">
           Durchsuchen Sie unsere Auswahl und finden Sie das perfekte Produkt.
         </p>
       </div>
@@ -134,7 +119,7 @@ const HomePage = () => {
       {/* Suche und Filter */}
       <div className="py-6 container mx-auto max-w-6xl">
         {/* Suchfeld */}
-        <div className="mb-6 flex items-center space-x-3 bg-white shadow-md p-4">
+        <div className="mb-6 flex items-center space-x-3 bg-white shadow-md p-4 rounded">
           <FaSearch className="text-gray-400" />
           <input
             type="text"
@@ -146,9 +131,9 @@ const HomePage = () => {
         </div>
 
         {/* Filter */}
-        <div className="flex justify-center space-x-6 mb-8">
+        <div className="flex justify-center space-x-8 mb-8">
           <button
-            className={`px-6 py-2 transition-all duration-300 ${
+            className={`px-6 py-2 rounded transition-all duration-300 ${
               availability === 'Alle'
                 ? 'bg-gray-800 text-white shadow-md'
                 : 'bg-gray-300 text-black hover:bg-gray-400'
@@ -158,7 +143,7 @@ const HomePage = () => {
             Alle ({totalCount})
           </button>
           <button
-            className={`px-6 py-2 transition-all duration-300 ${
+            className={`px-6 py-2 rounded transition-all duration-300 ${
               availability === 'Auf Lager'
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-gray-300 text-black hover:bg-gray-400'
@@ -168,7 +153,7 @@ const HomePage = () => {
             Auf Lager ({inStockCount})
           </button>
           <button
-            className={`px-6 py-2 transition-all duration-300 ${
+            className={`px-6 py-2 rounded transition-all duration-300 ${
               availability === 'Ausverkauft'
                 ? 'bg-red-600 text-white shadow-md'
                 : 'bg-gray-300 text-black hover:bg-gray-400'

@@ -1,7 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { CartContext } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const CartPage = () => {
   const { cart, addToCart, removeFromCart, clearCart } =
@@ -12,42 +11,33 @@ const CartPage = () => {
     cart.reduce((acc, item) => ({ ...acc, [item.id]: item.quantity }), {})
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false); // Überprüfung ob Nutzer eingeloggt ist
-  const [customerData, setCustomerData] = useState(null); // Kundendaten
+  const [customerName, setCustomerName] = useState(''); // Kundenname aus SessionStorage
+  const [customerPrice, setCustomerPrice] = useState(0); // Kundenpreis aus SessionStorage
   const [totalPrice, setTotalPrice] = useState(0); // Gesamtpreis für eingeloggten Kunden
 
-  // Kundendaten abrufen (gleiche Logik wie in homepage.js)
+  // Kundendaten aus SessionStorage abrufen
   useEffect(() => {
-    const fetchCustomerData = async () => {
-      try {
-        const response = await axios.get(
-          'https://bestandsliste.onrender.com/api/customers', // Gleiche API wie auf der Startseite
-          { withCredentials: true }
-        );
-        if (response.data.length > 0) {
-          setIsLoggedIn(true);
-          setCustomerData(response.data[0]); // Nur den ersten Kunden verwenden
-        } else {
-          setIsLoggedIn(false);
-        }
-      } catch (error) {
-        console.error('Fehler beim Abrufen der Kundendaten:', error);
-        setIsLoggedIn(false);
-      }
-    };
-
-    fetchCustomerData();
+    const name = sessionStorage.getItem('customerName'); // Kundenname
+    const price = sessionStorage.getItem('customerPrice'); // Kundenpreis
+    if (name) {
+      setCustomerName(name); // Setzt den Kundenname
+      setIsLoggedIn(true); // Setzt den Login-Status
+    }
+    if (price) {
+      setCustomerPrice(parseFloat(price)); // Konvertiert Preis zu einer Zahl
+    }
   }, []);
 
   // Gesamtpreis berechnen
   useEffect(() => {
-    if (isLoggedIn && customerData) {
+    if (isLoggedIn) {
       let total = 0;
       cart.forEach((item) => {
-        total += customerData.customerPrice * item.quantity; // Kundenpreis * Menge
+        total += customerPrice * item.quantity; // Kundenpreis * Menge
       });
       setTotalPrice(total);
     }
-  }, [cart, isLoggedIn, customerData]);
+  }, [cart, isLoggedIn, customerPrice]);
 
   // Menge aktualisieren
   const handleQuantityChange = (id, newQuantity) => {
@@ -70,40 +60,51 @@ const CartPage = () => {
     }
 
     try {
-      const response = await axios.post(
+      const response = await fetch(
         'https://bestandsliste.onrender.com/api/orders',
         {
-          products: cart,
-          customerId: isLoggedIn ? customerData._id : null, // Kunde nur, wenn eingeloggt
-        },
-        { withCredentials: true } // Cookies senden
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: cart.map((item) => ({
+              product: { id: item.id, price: item.price }, // Beachte die Struktur
+              quantity: item.quantity,
+            })),
+            customerId: sessionStorage.getItem('customerId') || null,
+          }),
+        }
       );
-      const orderId = response.data.id; // Nehmen wir an, die API gibt eine Bestell-ID zurück
-      navigate(`/order/${orderId}`); // Weiterleitung zur Bestellseite
+
+      // Response validieren
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Fehlerdaten:', errorData);
+        throw new Error(errorData.message || 'Serverfehler');
+      }
+
+      const data = await response.json();
+      console.log('Bestellung erfolgreich:', data);
+      alert(`Bestellung erfolgreich generiert! Link: ${data.uniqueLink}`);
+      navigate('/');
     } catch (error) {
       console.error('Fehler beim Generieren der Bestellung:', error);
-      alert(
-        'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.'
-      );
+      alert(`Fehler: ${error.message}`);
     }
   };
 
   return (
     <div className="container mx-auto max-w-6xl py-10 px-4">
+      {/* Header */}
+      <h2 className="text-3xl font-bold mb-6 text-center">Dein Warenkorb</h2>
+
       {/* Begrüßung und Logout */}
-      {isLoggedIn && customerData && (
-        <div className="flex justify-between items-center bg-gray-200 p-4 mb-4 rounded shadow">
-          <span className="text-lg font-semibold">
-            Hallo, {customerData.name}!
-          </span>
+      {isLoggedIn && (
+        <div className="flex justify-between items-center bg-gray-100 p-4 mb-6 rounded shadow">
+          <span className="text-lg font-semibold">Hallo, {customerName}!</span>
           <button
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             onClick={() => {
-              axios.post(
-                'https://bestandsliste.onrender.com/api/logout',
-                {},
-                { withCredentials: true }
-              );
+              sessionStorage.clear(); // SessionStorage löschen
               setIsLoggedIn(false);
             }}
           >
@@ -121,10 +122,8 @@ const CartPage = () => {
       </button>
 
       {/* Infotext */}
-      <h2 className="text-2xl font-bold mb-4">Dein Warenkorb</h2>
       <p className="text-gray-600 mb-8">
-        Hier kannst du deine Liste überprüfen, die Menge bearbeiten oder auch
-        Produkte aus der Liste entfernen.
+        Überprüfe deine Liste, passe Mengen an oder entferne Produkte.
       </p>
 
       {/* Wenn Warenkorb leer */}
@@ -142,7 +141,7 @@ const CartPage = () => {
       ) : (
         <>
           {/* Warenkorb-Liste */}
-          <div className="space-y-4">
+          <div className="space-y-4 mb-8">
             {cart.map((item) => (
               <div
                 key={item.id}
@@ -153,7 +152,7 @@ const CartPage = () => {
                   <img
                     src={`https://bestandsliste.onrender.com/${item.image}`}
                     alt={item.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded"
                   />
                 </div>
 
@@ -180,7 +179,7 @@ const CartPage = () => {
                 {/* Entfernen-Button */}
                 <button
                   onClick={() => removeProduct(item.id)}
-                  className="text-red-600 hover:text-red-800 px-4 py-2 border border-red-600 rounded"
+                  className="text-xs text-red-600 hover:text-red-800 px-4 py-2 border border-red-600 rounded"
                 >
                   X
                 </button>
@@ -188,8 +187,28 @@ const CartPage = () => {
             ))}
           </div>
 
+          {/* Gesamtpreis-Box */}
+          {isLoggedIn && (
+            <div className="p-6 bg-gray-100 rounded shadow mb-6">
+              <h3 className="text-xl font-bold mb-4">Dein Gesamtpreis</h3>
+              <p className="mb-2">
+                <strong>Summe:</strong>{' '}
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} Stück
+              </p>
+              <p className="mb-2">
+                <strong>Preis pro Stück:</strong> {customerPrice.toFixed(2)} €
+              </p>
+              <p className="mb-2 text-lg font-semibold">
+                <strong>Gesamt:</strong> {totalPrice.toFixed(2)} €
+              </p>
+              <small className="text-gray-500">
+                * Versandkosten werden separat berechnet.
+              </small>
+            </div>
+          )}
+
           {/* Aktionen */}
-          <div className="flex justify-between items-center mt-8">
+          <div className="flex justify-between items-center">
             <button
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
               onClick={clearCart}
@@ -203,20 +222,6 @@ const CartPage = () => {
               Bestellung generieren
             </button>
           </div>
-
-          {/* Gesamtpreis nur für eingeloggte Kunden */}
-          {isLoggedIn && customerData && (
-            <div className="mt-6 p-4 bg-gray-100 rounded shadow">
-              <h3 className="text-xl font-bold">Dein Gesamtpreis:</h3>
-              <p>
-                Summe: {cart.reduce((sum, item) => sum + item.quantity, 0)}{' '}
-                Stück
-              </p>
-              <p>Dein Preis: {customerData.customerPrice.toFixed(2)} €</p>
-              <p>Gesamtpreis: {totalPrice.toFixed(2)} €</p>
-              <small>+ Versandkosten, werden separat berechnet</small>
-            </div>
-          )}
         </>
       )}
     </div>
