@@ -1,160 +1,79 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
-const OrdersPage = () => {
-  const [orders, setOrders] = useState([]); // Bestellungen
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Login-Status
-  const [customerName, setCustomerName] = useState(''); // Kundenname
-  const [customerPrice, setCustomerPrice] = useState(0); // Kundenpreis
-  const navigate = useNavigate();
+const OrderPage = () => {
+  const { link } = useParams(); // Link aus der URL
+  const [order, setOrder] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Kundendaten aus SessionStorage abrufen
   useEffect(() => {
-    const name = sessionStorage.getItem('customerName');
-    const price = sessionStorage.getItem('customerPrice');
-    if (name) {
-      setCustomerName(name);
-      setIsLoggedIn(true);
-    }
-    if (price) {
-      setCustomerPrice(parseFloat(price));
-    }
-  }, []);
-
-  // Bestellungen vom Backend abrufen
-  useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchOrder = async () => {
       try {
-        const response = await fetch(
-          'https://bestandsliste.onrender.com/api/orders'
-        );
+        const response = await fetch(`https://bestandsliste.onrender.com/api/orders/${link}`);
         if (!response.ok) {
-          throw new Error('Fehler beim Abrufen der Bestellungen');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Serverfehler');
         }
         const data = await response.json();
-        setOrders(data); // Setzt die Bestellungen
+        setOrder(data);
       } catch (error) {
-        console.error('Fehler beim Abrufen der Bestellungen:', error);
+        console.error('Fehler beim Abrufen der Bestellung:', error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchOrders();
-  }, []);
+    fetchOrder();
+  }, [link]);
+
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
+
+  if (error) {
+    return <p>Fehler: {error}</p>;
+  }
 
   return (
     <div className="container mx-auto max-w-6xl py-10 px-4">
-      {/* Header */}
-      <h2 className="text-3xl font-bold mb-6 text-center">
-        Deine Bestellungen
-      </h2>
-
-      {/* Begrüßung und Logout */}
-      {isLoggedIn && (
-        <div className="flex justify-between items-center bg-gray-100 p-4 mb-6 rounded shadow">
-          <span className="text-lg font-semibold">Hallo, {customerName}!</span>
-          <button
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            onClick={() => {
-              sessionStorage.clear();
-              setIsLoggedIn(false);
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      )}
-
-      {/* Zurück zur Startseite */}
-      <button
-        className="mb-6 text-blue-600 underline"
-        onClick={() => navigate('/')}
-      >
-        &larr; Zurück zur Bestandsliste
-      </button>
-
-      {/* Infotext */}
-      <p className="text-gray-600 mb-8">
-        Hier findest du eine Übersicht deiner Bestellungen.
-      </p>
-
-      {/* Wenn keine Bestellungen */}
-      {orders.length === 0 ? (
-        <p className="text-center text-gray-500 text-lg">
-          Es sind noch keine Bestellungen vorhanden.
-        </p>
-      ) : (
+      <h2 className="text-3xl font-bold mb-6 text-center">Bestellung</h2>
+      {order && (
         <>
-          {/* Bestellungen anzeigen */}
-          <div className="space-y-8">
-            {orders.map((order) => (
-              <div
-                key={order._id}
-                className="border border-gray-300 rounded shadow p-6"
-              >
-                <h3 className="text-xl font-semibold mb-4">
-                  Bestellung #{order._id}
-                </h3>
-                <div className="space-y-4">
-                  {order.products.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="flex items-center justify-between"
-                    >
-                      {/* Produktbild */}
-                      <div className="w-24 h-24 flex-shrink-0">
-                        <img
-                          src={`https://bestandsliste.onrender.com/${item.product.image}`}
-                          alt={item.product.title}
-                          className="w-full h-full object-cover rounded"
-                        />
-                      </div>
-
-                      {/* Titel und Menge */}
-                      <div className="flex-1 px-4">
-                        <h4 className="text-lg font-semibold">
-                          {item.product.title}
-                        </h4>
-                        <p className="text-gray-600">Menge: {item.quantity}</p>
-                      </div>
-                    </div>
-                  ))}
+          <h3 className="text-lg font-semibold mb-4">
+            Kunde: {order.customerName || 'Gast'}
+          </h3>
+          <div className="space-y-4">
+            {order.products.map((item) => (
+              <div key={item.product._id} className="flex items-center justify-between border-b pb-4">
+                <div className="w-24 h-24 flex-shrink-0">
+                  <img
+                    src={`https://bestandsliste.onrender.com/${item.product.image}`}
+                    alt={item.product.title}
+                    className="w-full h-full object-cover rounded"
+                  />
                 </div>
-
-                {/* Gesamtpreis */}
-                {isLoggedIn && (
-                  <div className="mt-4 p-4 bg-gray-100 rounded">
-                    <p>
-                      <strong>Gesamtmenge:</strong>{' '}
-                      {order.products.reduce(
-                        (sum, item) => sum + item.quantity,
-                        0
-                      )}{' '}
-                      Stück
-                    </p>
-                    <p>
-                      <strong>Preis pro Stück:</strong>{' '}
-                      {customerPrice.toFixed(2)} €
-                    </p>
-                    <p className="font-bold">
-                      <strong>Gesamtpreis:</strong>{' '}
-                      {(
-                        customerPrice *
-                        order.products.reduce(
-                          (sum, item) => sum + item.quantity,
-                          0
-                        )
-                      ).toFixed(2)}{' '}
-                      €
-                    </p>
-                  </div>
-                )}
+                <div className="flex-1 px-4">
+                  <h3 className="text-lg font-semibold">{item.product.title}</h3>
+                  <p className="mt-2">Menge: {item.quantity}</p>
+                </div>
               </div>
             ))}
           </div>
+          {order.customerId && (
+            <div className="p-6 bg-gray-100 rounded shadow mt-6">
+              <h3 className="text-xl font-bold mb-4">Preisdetails</h3>
+              <p>
+                <strong>Gesamtpreis:</strong> {order.totalPrice.toFixed(2)} €
+              </p>
+              <small className="text-gray-500">* Versandkosten separat.</small>
+            </div>
+          )}
         </>
       )}
     </div>
   );
 };
 
-export default OrdersPage;
+export default OrderPage;

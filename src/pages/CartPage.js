@@ -64,6 +64,7 @@ const CartPage = () => {
     }
 
     try {
+      // Bestellung erstellen
       const response = await fetch(
         'https://bestandsliste.onrender.com/api/orders',
         {
@@ -74,23 +75,22 @@ const CartPage = () => {
               product: item.id, // Nur die Produkt-ID senden
               quantity: item.quantity,
             })),
-            customerId: isLoggedIn
-              ? sessionStorage.getItem('customerId')
-              : null, // Null, wenn nicht eingeloggt
+            customerId: sessionStorage.getItem('customerId') || null,
+            customerName: sessionStorage.getItem('customerName') || 'Gast',
           }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Fehlerdaten:', errorData);
         throw new Error(errorData.message || 'Serverfehler');
       }
 
       const data = await response.json();
-      alert(`Bestellung erfolgreich generiert! Link: ${data.uniqueLink}`);
-      clearCart(); // Warenkorb leeren
-      navigate('/orders'); // Weiterleitung zur OrdersPage
+      console.log('Bestellung erfolgreich:', data);
+
+      // Weiterleitung zur OrderPage
+      navigate(`/order/${data.uniqueLink.split('/').pop()}`);
     } catch (error) {
       console.error('Fehler beim Generieren der Bestellung:', error);
       alert(`Fehler: ${error.message}`);
