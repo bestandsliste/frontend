@@ -32,9 +32,13 @@ const CartPage = () => {
   useEffect(() => {
     if (isLoggedIn) {
       let total = 0;
-      cart.forEach((item) => {
-        total += customerPrice * item.quantity; // Kundenpreis * Menge
-      });
+      if (!customerPrice || isNaN(customerPrice)) {
+        console.error('Ungültiger Kundenpreis:', customerPrice);
+      } else {
+        cart.forEach((item) => {
+          total += customerPrice * item.quantity; // Gesamtpreis berechnen
+        });
+      }
       setTotalPrice(total);
     }
   }, [cart, isLoggedIn, customerPrice]);
@@ -67,10 +71,10 @@ const CartPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             products: cart.map((item) => ({
-              product: { id: item.id, price: item.price }, // Beachte die Struktur
+              product: item.id, // Nur die Produkt-ID senden
               quantity: item.quantity,
             })),
-            customerId: sessionStorage.getItem('customerId') || null,
+            customerId: sessionStorage.getItem('customerId') || null, // Optionaler Kunden-ID
           }),
         }
       );
@@ -85,7 +89,8 @@ const CartPage = () => {
       const data = await response.json();
       console.log('Bestellung erfolgreich:', data);
       alert(`Bestellung erfolgreich generiert! Link: ${data.uniqueLink}`);
-      navigate('/');
+      clearCart(); // Warenkorb leeren
+      navigate('/orders'); // Weiterleitung zur OrdersPage
     } catch (error) {
       console.error('Fehler beim Generieren der Bestellung:', error);
       alert(`Fehler: ${error.message}`);
