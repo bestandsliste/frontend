@@ -74,12 +74,13 @@ const CartPage = () => {
               product: item.id, // Nur die Produkt-ID senden
               quantity: item.quantity,
             })),
-            customerId: sessionStorage.getItem('customerId') || null, // Optionaler Kunden-ID
+            customerId: isLoggedIn
+              ? sessionStorage.getItem('customerId')
+              : null, // Null, wenn nicht eingeloggt
           }),
         }
       );
 
-      // Response validieren
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Fehlerdaten:', errorData);
@@ -87,7 +88,6 @@ const CartPage = () => {
       }
 
       const data = await response.json();
-      console.log('Bestellung erfolgreich:', data);
       alert(`Bestellung erfolgreich generiert! Link: ${data.uniqueLink}`);
       clearCart(); // Warenkorb leeren
       navigate('/orders'); // Weiterleitung zur OrdersPage
