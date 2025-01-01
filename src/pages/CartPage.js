@@ -57,12 +57,13 @@ const CartPage = () => {
   // Bestellung generieren
   const generateOrder = async () => {
     if (cart.length === 0) {
-      alert('Der Warenkorb ist leer. Es kann keine Bestellung erstellt werden.');
+      alert(
+        'Der Warenkorb ist leer. Es kann keine Bestellung erstellt werden.'
+      );
       return;
     }
-  
+
     try {
-      // Bestellung erstellen
       const response = await fetch(
         'https://bestandsliste.onrender.com/api/orders',
         {
@@ -70,31 +71,27 @@ const CartPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             products: cart.map((item) => ({
-              product: item.id, // ID direkt aus dem Warenkorb (soll ein String sein)
-              quantity: item.quantity,
+              product: item.id, // Produkt-ID
+              quantity: item.quantity, // Menge
             })),
             customerId: sessionStorage.getItem('customerId') || null,
             customerName: sessionStorage.getItem('customerName') || 'Gast',
           }),
         }
       );
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Fehlerdaten:', errorData);
         throw new Error(errorData.message || 'Serverfehler');
       }
-  
+
       const data = await response.json();
-      console.log('Bestellung erfolgreich:', data);
-  
-      // Weiterleitung zur OrderPage
-      navigate(`/order/${data.uniqueLink.split('/').pop()}`);
+      navigate(`/order/${data.uniqueLink.split('/').pop()}`); // Weiterleitung zur Bestellseite
     } catch (error) {
       console.error('Fehler beim Generieren der Bestellung:', error);
       alert(`Fehler: ${error.message}`);
     }
-  };  
+  };
 
   return (
     <div className="container mx-auto max-w-6xl py-10 px-4">
