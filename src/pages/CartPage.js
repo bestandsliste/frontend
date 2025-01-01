@@ -57,12 +57,10 @@ const CartPage = () => {
   // Bestellung generieren
   const generateOrder = async () => {
     if (cart.length === 0) {
-      alert(
-        'Der Warenkorb ist leer. Es kann keine Bestellung erstellt werden.'
-      );
+      alert('Der Warenkorb ist leer. Es kann keine Bestellung erstellt werden.');
       return;
     }
-
+  
     try {
       // Bestellung erstellen
       const response = await fetch(
@@ -72,7 +70,7 @@ const CartPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             products: cart.map((item) => ({
-              product: item.id, // Nur die Produkt-ID senden
+              product: item.id, // ID direkt aus dem Warenkorb (soll ein String sein)
               quantity: item.quantity,
             })),
             customerId: sessionStorage.getItem('customerId') || null,
@@ -80,22 +78,23 @@ const CartPage = () => {
           }),
         }
       );
-
+  
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Fehlerdaten:', errorData);
         throw new Error(errorData.message || 'Serverfehler');
       }
-
+  
       const data = await response.json();
       console.log('Bestellung erfolgreich:', data);
-
+  
       // Weiterleitung zur OrderPage
       navigate(`/order/${data.uniqueLink.split('/').pop()}`);
     } catch (error) {
       console.error('Fehler beim Generieren der Bestellung:', error);
       alert(`Fehler: ${error.message}`);
     }
-  };
+  };  
 
   return (
     <div className="container mx-auto max-w-6xl py-10 px-4">
